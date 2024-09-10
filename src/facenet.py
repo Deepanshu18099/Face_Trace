@@ -32,6 +32,7 @@ from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
 from scipy import misc
+from skimage import io, transform
 from sklearn.model_selection import KFold
 from scipy import interpolate
 from tensorflow.python.training import training
@@ -92,7 +93,7 @@ def shuffle_examples(image_paths, labels):
 
 def random_rotate_image(image):
     angle = np.random.uniform(low=-10.0, high=10.0)
-    return misc.imrotate(image, angle, 'bicubic')
+    return io.imrotate(image, angle, 'bicubic')
   
 # 1: Random rotate 2: Random crop  4: Random flip  8:  Fixed image standardization  16: Flip
 RANDOM_ROTATE = 1
@@ -244,7 +245,7 @@ def load_data(image_paths, do_random_crop, do_random_flip, image_size, do_prewhi
     nrof_samples = len(image_paths)
     images = np.zeros((nrof_samples, image_size, image_size, 3))
     for i in range(nrof_samples):
-        img = misc.imread(image_paths[i])
+        img = io.imread(image_paths[i])
         if img.ndim == 2:
             img = to_rgb(img)
         if do_prewhiten:
@@ -380,7 +381,7 @@ def load_model(model, input_map=None):
       
         saver = tf.train.import_meta_graph(os.path.join(model_exp, meta_file), input_map=input_map)
         saver.restore(tf.get_default_session(), os.path.join(model_exp, ckpt_file))
-    
+
 def get_model_filenames(model_dir):
     files = os.listdir(model_dir)
     meta_files = [s for s in files if s.endswith('.meta')]

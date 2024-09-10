@@ -21,21 +21,21 @@
 # SOFTWARE.
 
 % LFW
-% source_path = '/home/david/datasets/lfw/raw';
-% target_path = '/home/david/datasets/lfw/lfw_mtcnnalign_160';
+% source_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/lfw/raw';
+% target_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/lfw/lfw_mtcnnalign_160';
 % image_size = 160 + 0;
 % margin = round(image_size*0.2) + 0;
 
 % FaceScrub
-% source_path = '/home/david/datasets/facescrub/facescrub/';
-% target_path = '/home/david/datasets/facescrub/facescrub_mtcnnalign_182_160';
-% failed_images_list = '/home/david/datasets/facescrub/facescrub_mtcnnalign_182_160/failed_images.txt';
+% source_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/facescrub/facescrub/';
+% target_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/facescrub/facescrub_mtcnnalign_182_160';
+% failed_images_list = '/home/maverick/Downloads/courses/FaceRecog/datasets/facescrub/facescrub_mtcnnalign_182_160/failed_images.txt';
 % image_size = 160 + 12;
 % margin = round(image_size*0.2) + 12;
 
-source_path = '/home/david/datasets/casia/CASIA-maxpy-clean/';
-target_path = '/home/david/datasets/casia/casia_maxpy_mtcnnalign_182_160';
-failed_images_list = '/home/david/datasets/casia/casia_maxpy_mtcnnalign_182_160/failed_images.txt';
+source_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/casia/CASIA-maxpy-clean/';
+target_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/casia/casia_maxpy_mtcnnalign_182_160';
+failed_images_list = '/home/maverick/Downloads/courses/FaceRecog/datasets/casia/casia_maxpy_mtcnnalign_182_160/failed_images.txt';
 image_size = 160 + 12;
 margin = round(image_size*0.2) + 12;
 
@@ -108,7 +108,7 @@ for i=1:length(classes),
                     end;
                         
                     source_img_path = sprintf('%s/%s', source_class_path, imgs(j).name);
-                    % source_img_path = '/home/david/datasets/facescrub/facescrub//Billy_Zane/095f83fefdf1dc493c013edb1ef860001193e8d9.jpg'
+                    % source_img_path = '/home/maverick/Downloads/courses/FaceRecog/datasets/facescrub/facescrub//Billy_Zane/095f83fefdf1dc493c013edb1ef860001193e8d9.jpg'
                     try
                         img = imread(source_img_path);
                     catch exception

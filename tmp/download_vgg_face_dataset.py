@@ -73,9 +73,9 @@ def main(args):
                                 # Crop image according to dataset descriptor
                                 img_cropped = img[int(box[1]):int(box[3]),int(box[0]):int(box[2]),:]
                                 # Scale to 256x256
-                                img_resized = misc.imresize(img_cropped, (args.image_size,args.image_size))
+                                img_resized = transform.resize_local_mean(img_cropped, (args.image_size,args.image_size))
                                 # Save image as .png
-                                misc.imsave(image_path, img_resized)
+                                io.imsave(image_path, img_resized)
                         except ValueError as e:
                             error_message = '{}: {}'.format(url, e)
                             save_error_message_file(error_path, error_message)

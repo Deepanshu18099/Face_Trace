@@ -46,6 +46,7 @@ def main(args):
             
             if args.use_split_dataset:
                 dataset_tmp = facenet.get_dataset(args.data_dir)
+                print('Number of classes: %d' % len(dataset_tmp))
                 train_set, test_set = split_dataset(dataset_tmp, args.min_nrof_images_per_class, args.nrof_train_images_per_class)
                 if (args.mode=='TRAIN'):
                     dataset = train_set
@@ -112,26 +113,44 @@ def main(args):
                 print('Loaded classifier model from file "%s"' % classifier_filename_exp)
 
                 predictions = model.predict_proba(emb_array)
-                best_class_indices = np.argmax(predictions, axis=1)
-                best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
                 
+                # best_class_indices = np.argmax(predictions, axis=1)
+                # best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
+                
+                # for i in range(len(best_class_indices)):
+                #     print('%4d  %s: %.3f' % (i, class_names[best_class_indices[i]], best_class_probabilities[i]))
+
+
+                # printing best 2 classes
+                best_class_indices = np.argsort(predictions, axis=1)[:, -2:]
+                best1_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices[:, -1]]
+                best2_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices[:, -2]]
                 for i in range(len(best_class_indices)):
-                    print('%4d  %s: %.3f' % (i, class_names[best_class_indices[i]], best_class_probabilities[i]))
-                    
-                accuracy = np.mean(np.equal(best_class_indices, labels))
+                    # also print the item name
+                    print('%4d %s %s: %.3f, %s: %.3f' % (i, paths[i].split('/')[-1], class_names[best_class_indices[i, -1]], best1_class_probabilities[i], class_names[best_class_indices[i, -2]], best2_class_probabilities[i]))
+                # accuracy = np.mean(np.equal(best_class_indices, labels))
+                # print('Accuracy: %.3f' % accuracy)
+
+                # calculating accuracy of best 1 class
+                accuracy = np.mean(np.equal(best_class_indices[:, -1], labels))
                 print('Accuracy: %.3f' % accuracy)
                 
             
 def split_dataset(dataset, min_nrof_images_per_class, nrof_train_images_per_class):
     train_set = []
     test_set = []
+    # Image_name_test = []
     for cls in dataset:
         paths = cls.image_paths
+        # print('Shape of paths:', len(paths))
         # Remove classes with less than min_nrof_images_per_class
         if len(paths)>=min_nrof_images_per_class:
             np.random.shuffle(paths)
             train_set.append(facenet.ImageClass(cls.name, paths[:nrof_train_images_per_class]))
             test_set.append(facenet.ImageClass(cls.name, paths[nrof_train_images_per_class:]))
+            # # push all the elements in the list
+            # Image_name_test.append(paths[nrof_train_images_per_class:])
+            # print('Shape of Image_name_test:', len(test_set))
     return train_set, test_set
 
             

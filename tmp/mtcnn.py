@@ -52,9 +52,9 @@ with tf.Graph().as_default():
 minsize = 20 # minimum size of face
 threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 factor = 0.709 # scale factor
-
+from skimage import io, transform
 source_path = '/home/david/datasets/casia/CASIA-maxpy-clean/0000045/002.jpg'
-img = misc.imread(source_path)
+img = io.imread(source_path)
 
 bounding_boxes, points = align.detect_face.detect_face(img, minsize, pnet_fun, rnet_fun, onet_fun, threshold, factor)
 

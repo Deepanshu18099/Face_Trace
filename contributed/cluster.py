@@ -31,6 +31,7 @@ import tensorflow as tf
 import numpy as np
 import os
 import sys
+from skimage import io, transform
 import argparse
 import facenet
 import align.detect_face
@@ -95,7 +96,7 @@ def main(args):
                     print('Saving largest cluster (Cluster: {})'.format(largest_cluster))
                     cnt = 1
                     for i in np.nonzero(labels == largest_cluster)[0]:
-                        misc.imsave(os.path.join(args.out_dir, str(cnt) + '.png'), images[i])
+                        io.imsave(os.path.join(args.out_dir, str(cnt) + '.png'), images[i])
                         cnt += 1
                 else:
                     print('Saving all clusters')
@@ -106,11 +107,11 @@ def main(args):
                         if not os.path.exists(path):
                             os.makedirs(path)
                             for j in np.nonzero(labels == i)[0]:
-                                misc.imsave(os.path.join(path, str(cnt) + '.png'), images[j])
+                                io.imsave(os.path.join(path, str(cnt) + '.png'), images[j])
                                 cnt += 1
                         else:
                             for j in np.nonzero(labels == i)[0]:
-                                misc.imsave(os.path.join(path, str(cnt) + '.png'), images[j])
+                                io.imsave(os.path.join(path, str(cnt) + '.png'), images[j])
                                 cnt += 1
 
 
@@ -135,7 +136,7 @@ def align_data(image_list, image_size, margin, pnet, rnet, onet):
                     bb[2] = np.minimum(det[2] + margin / 2, img_size[1])
                     bb[3] = np.minimum(det[3] + margin / 2, img_size[0])
                     cropped = image_list[x][bb[1]:bb[3], bb[0]:bb[2], :]
-                    aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
+                    aligned = transform.resize_local_mean(cropped, (image_size, image_size))
                     prewhitened = facenet.prewhiten(aligned)
                     img_list.append(prewhitened)
 
@@ -158,7 +159,7 @@ def create_network_face_detection(gpu_memory_fraction):
 def load_images_from_folder(folder):
     images = []
     for filename in os.listdir(folder):
-        img = misc.imread(os.path.join(folder, filename))
+        img = imageio.imread(os.path.join(folder, filename))
         if img is not None:
             images.append(img)
     return images

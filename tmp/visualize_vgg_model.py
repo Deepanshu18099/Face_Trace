@@ -98,10 +98,10 @@ for iters in range(iterations):
         im = mixedImage + meanImage19
         im = im[0]
         im = np.clip(im, 0, 255).astype('uint8')
-        misc.imsave(filename, im)
+        io.imsave(filename, im)
  
 im = mixedImage + meanImage19
 im = im[0]
 im = np.clip(im, 0, 255).astype('uint8')
-misc.imsave('finalImage.png', im)
+io.imsave('finalImage.png', im)
 

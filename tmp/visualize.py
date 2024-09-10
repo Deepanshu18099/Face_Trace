@@ -80,7 +80,7 @@ def main(args):
         channel = channels[i]
         img = render_naive(sess, t_input, T(layer)[:,:,:,channel], img_noise)
         filename = '%s_%03d.png' % (layer.replace('/', '_'), channel)
-        misc.imsave(os.path.join(result_dir, filename), img)
+        io.imsave(os.path.join(result_dir, filename), img)
   
 
 def T(layer):

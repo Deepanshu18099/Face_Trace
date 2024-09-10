@@ -31,6 +31,7 @@ import os
 import argparse
 import tensorflow as tf
 import numpy as np
+from skimage import io, transform
 import facenet
 import align.detect_face
 import random
@@ -80,7 +81,7 @@ def main(args):
                 print(image_path)
                 if not os.path.exists(output_filename):
                     try:
-                        img = misc.imread(image_path)
+                        img = io.imread(image_path)
                     except (IOError, ValueError, IndexError) as e:
                         errorMessage = '{}: {}'.format(image_path, e)
                         print(errorMessage)
@@ -121,15 +122,20 @@ def main(args):
                                 bb[2] = np.minimum(det[2]+args.margin/2, img_size[1])
                                 bb[3] = np.minimum(det[3]+args.margin/2, img_size[0])
                                 cropped = img[bb[1]:bb[3],bb[0]:bb[2],:]
-                                scaled = misc.imresize(cropped, (args.image_size, args.image_size), interp='bilinear')
+                                scaled = transform.resize_local_mean(cropped, (args.image_size, args.image_size))
                                 nrof_successfully_aligned += 1
                                 filename_base, file_extension = os.path.splitext(output_filename)
                                 if args.detect_multiple_faces:
                                     output_filename_n = "{}_{}{}".format(filename_base, i, file_extension)
                                 else:
                                     output_filename_n = "{}{}".format(filename_base, file_extension)
-                                misc.imsave(output_filename_n, scaled)
-                                text_file.write('%s %d %d %d %d\n' % (output_filename_n, bb[0], bb[1], bb[2], bb[3]))
+                                # print('Aligned and saved as %s')
+                                try:
+                                    io.imsave(output_filename_n, scaled)
+                                    text_file.write('%s %d %d %d %d\n' % (output_filename_n, bb[0], bb[1], bb[2], bb[3]))
+                                except (IOError, ValueError, IndexError) as e:
+                                    errorMessage = '{}: {}'.format(output_filename_n, e)
+                                    print(errorMessage + ' - image may be corrupt')
                         else:
                             print('Unable to align "%s"' % image_path)
                             text_file.write('%s\n' % (output_filename))

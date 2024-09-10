@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 from scipy import misc
+from skimage import io, transform
 import sys
 import os
 import argparse
@@ -67,15 +68,15 @@ def main(args):
                     os.makedirs(output_class_dir)
                 scale = 1.0
                 for tmp_filename in tmp_filenames:
-                    img = misc.imread(tmp_filename)
-                    img_scale = misc.imresize(img, scale)
+                    img = io.imread(tmp_filename)
+                    img_scale = transform.resize_local_mean(img, scale)
                     sz1 = img.shape[1]/2
                     sz2 = args.image_size/2
                     img_crop = img_scale[int(sz1-sz2):int(sz1+sz2),int(sz1-sz2):int(sz1+sz2),:]
                     filename = os.path.splitext(os.path.split(tmp_filename)[1])[0]
                     output_filename = os.path.join(output_class_dir, filename+'.png')
                     print('Saving image %s' % output_filename)
-                    misc.imsave(output_filename, img_crop)
+                    io.imsave(output_filename, img_crop)
                     
                 # Remove tmp directory with images
                 shutil.rmtree(tmp_output_class_dir)

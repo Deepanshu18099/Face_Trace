@@ -160,7 +160,7 @@ def evaluate_accuracy(sess, images_placeholder, phase_train_placeholder, image_s
 def scale_images(images, scale, image_size):
     images_scale_list = [None] * images.shape[0]
     for i in range(images.shape[0]):
-        images_scale_list[i] = misc.imresize(images[i,:,:,:], scale)
+        images_scale_list[i] = transform.resize_local_mean(images[i,:,:,:], scale)
     images_scale = np.stack(images_scale_list,axis=0)
     sz1 = images_scale.shape[1]/2
     sz2 = image_size/2
