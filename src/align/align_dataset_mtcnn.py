@@ -75,15 +75,20 @@ def main(args):
                 if args.random_order:
                     random.shuffle(cls.image_paths)
             for image_path in cls.image_paths:
+                # print('image_path: ', image_path)
                 nrof_images_total += 1
                 filename = os.path.splitext(os.path.split(image_path)[1])[0]
                 output_filename = os.path.join(output_class_dir, filename+'.png')
-                print(image_path)
+                # print(image_path)
+                # print("Checking if file exists: ", output_filename)
+                # printing all existing files in the output directory
+                # print("Existing files in the output directory: ", os.listdir(output_class_dir), output_class_dir)
                 if not os.path.exists(output_filename):
+                    # print('Creating %s as does not exist' % output_filename)
                     try:
                         img = io.imread(image_path)
                     except (IOError, ValueError, IndexError) as e:
-                        errorMessage = '{}: {}'.format(image_path, e)
+                        errorMessage = '{}: {} '.format(image_path, e)
                         print(errorMessage)
                     else:
                         if img.ndim<2:
@@ -93,8 +98,11 @@ def main(args):
                         if img.ndim == 2:
                             img = facenet.to_rgb(img)
                         img = img[:,:,0:3]
+
     
+                        # print("Image shape----------------: ", img.shape)
                         bounding_boxes, _ = align.detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
+                        # print("Image shape---------: ", img.shape)
                         nrof_faces = bounding_boxes.shape[0]
                         if nrof_faces>0:
                             det = bounding_boxes[:,0:4]

@@ -7,3 +7,5 @@ matplotlib
 Pillow
 requests
 psutil
+pymilvus ==2.2.0
+skimage
