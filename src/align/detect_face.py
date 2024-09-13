@@ -401,6 +401,11 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
         score = out2[1,:]
         points = out1
         ipass = np.where(score>threshold[2])
+
+        if len(ipass[0]) == 0:
+            print("No faces detected with sufficient confidence.")
+            return np.empty()
+        
         points = points[:,ipass[0]]
         total_boxes = np.hstack([total_boxes[ipass[0],0:4].copy(), np.expand_dims(score[ipass].copy(),1)])
         mv = out0[:,ipass[0]]

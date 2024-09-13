@@ -223,8 +223,12 @@ def main(args):
                 feed_dict = { images_placeholder:images, phase_train_placeholder:False }
                 emb_array[start_index:end_index,:] = sess.run(embeddings, feed_dict=feed_dict)
             
-            classifier_filename_exp = os.path.expanduser(args.classifier_filename)
-
+            # classifier_filename_exp = os.path.expanduser(args.classifier_filename)
+# Now as model is almost done, next thing will be create a new python model for recognisation In which we will give some image path, so fi So my model and architecture is ready for recognisation,
+# Now I want to make a Portal for the model, In which
+# Backend possible flask: 
+# will be running tensorflow and docker of milvus
+# - will recieve the image from frontend using some API and 
             # if (args.mode=='TRAIN'):
             #     # Train classifier
             #     print('Training classifier')
