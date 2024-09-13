@@ -153,10 +153,8 @@ def align_and_save_face(image_path, output_filename, pnet, rnet, onet, image_siz
             scaled = transform.resize_local_mean(cropped, (image_size, image_size))
             try:
                 io.imsave(output_filename, scaled)
-                return True
             except (IOError, ValueError, IndexError) as e:
                 print(f'Error saving {output_filename}: {e}')
-                return False
 
 def process_dataset(dataset, output_dir, pnet, rnet, onet, image_size, margin, detect_multiple_faces, random_order):
     """
