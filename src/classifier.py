@@ -27,6 +27,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from pymilvus import Collection, CollectionSchema, DataType, FieldSchema, connections
+import tensorflow as tf
+import numpy as np
+import argparse
+import facenet
+import os
+import sys
+import math
+import pickle
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
 # Connect to Milvus
 connections.connect()
@@ -34,6 +44,11 @@ connections.connect()
 from pymilvus import (
     FieldSchema, CollectionSchema, DataType, Collection
 )
+
+MATCHES_TO_SHOW = 10 # during classification, show the top 3 matches
+MAX_CLUSTERS = 5 # maximum number of clusters to consider for each person
+MIN_EXAMPLES_TO_CLUSTER = 4 # minimum number of examples to consider for clustering
+
 
 def create_collection(collection_name, embedding_size):
     # Define fields for the schema
@@ -52,15 +67,17 @@ def create_collection(collection_name, embedding_size):
 
 def drop_collection(collectionName):
     # To drop the collection, mean to remove the collection and its data
-    collection = Collection(collectionName)
-    collection.drop()
+    try:
+        collection = Collection(collectionName)
+        collection.drop()
+        print("Collection dropped")
+    except Exception as e:
+        print("Error:", e)
 
-
-def insert_embeddings(collection, embeddings, labels):
-    data = [embeddings, labels]
-    res = collection.insert(data)
-    create_index(collection)
-    print(res)
+def search_embeddings(collection, query_embedding, top_k=5):
+    search_params = {"metric_type": "L2", "params": {"nprobe": 16}}
+    results = collection.search([query_embedding], "embedding", limit=top_k, param=search_params, output_fields=["label"])
+    return results
 
 def create_index(collection):
     # Index parameters for creating the index
@@ -74,22 +91,80 @@ def create_index(collection):
     print("Creating index on 'embedding' field")
     collection.create_index(field_name="embedding", index_params=index_params)
 
-def search_embeddings(collection, query_embedding, top_k=5):
-    search_params = {"metric_type": "L2", "params": {"nprobe": 16}}
-    results = collection.search([query_embedding], "embedding", limit=top_k, param=search_params, output_fields=["label"])
-    return results
+def cluster_embeddings(embeddings, max_clusters=MAX_CLUSTERS, min_clusters=1):
+    """
+    Cluster embeddings for each person and return centroids.
+    The number of clusters is dynamically chosen based on variability.
+    
+    Args:
+    - embeddings: List or array of face embeddings for a person.
+    - max_clusters: Maximum number of clusters to consider.
+    - min_clusters: Minimum number of clusters to allow.
+    
+    Returns:
+    - centroids: Centroid of the clusters representing distinct variations.
+    """
+    best_clusters = min_clusters
+    best_score = -2  # Silhouette score ranges from -1 to 1
+    centroids = None
+
+    # if there are less than 4 embeddings, then take number of clusters as number of embeddings
+    if len(embeddings) < MIN_EXAMPLES_TO_CLUSTER:
+        best_clusters = len(embeddings)
+        return embeddings
+    else:
+        # Iterate over a range of clusters to find the best fit
+        for n_clusters in range(min_clusters, min(max_clusters+1, len(embeddings)+1)):
+            kmeans = KMeans(n_clusters=n_clusters)
+            cluster_labels = kmeans.fit_predict(embeddings)
+
+            print(f"Cluster labels: {cluster_labels}, size of embeddings: {len(embeddings)}, size_clusters: {n_clusters}")
+            # Calculate a silhouette score to evaluate how well the clusters represent the data
+            if(n_clusters == 1 or n_clusters == len(embeddings)):
+                score = 0
+            else:
+                score = silhouette_score(embeddings, cluster_labels)
+
+            print(f"Clusters: {n_clusters}, Score: {score:.4f}")
+            if score > best_score:
+                best_score = score
+                best_clusters = n_clusters
+                centroids = kmeans.cluster_centers_
+    
+    print(f"Selected {best_clusters} clusters for {len(embeddings)} images based on silhouette score: {best_score:.4f}")
+    return centroids
+
+def insert_cluster_centroids(collection, embeddings, labels, max_clusters=MAX_CLUSTERS):
+    """
+    Insert only the cluster centroids into the database, reducing the number of embeddings.
+    
+    Args:
+    - collection: Milvus collection.
+    - embeddings: Dictionary of embeddings grouped by person (person_id -> embeddings).
+    - labels: List of person IDs corresponding to the embeddings.
+    - max_clusters: Maximum number of clusters to store for each person.
+    """
+    for person_id, person_embeddings in embeddings.items():
+        # Cluster the embeddings and get the centroids
+        centroids = cluster_embeddings(person_embeddings, max_clusters=max_clusters)
+
+        # print(f"Centroids: {centroids}")
+        
+        # Insert the centroids into the collection
+        data = [centroids, [person_id] * len(centroids)]  # Repeated labels for the centroids
+        # label should be such that same person will have same person ids in the data
+        # so we need to store these person Ids some how, these are basically from embeddings
+        res = collection.insert(data)
+        print(f"Inserted {len(centroids)} centroids for person ID {person_id}")
+    
+    create_index(collection)
 
 
-
-import tensorflow as tf
-import numpy as np
-import argparse
-import facenet
-import os
-import sys
-import math
-import pickle
-from sklearn.svm import SVC
+# def insert_embeddings(collection, embeddings, labels):
+#     data = [embeddings, labels]
+#     res = collection.insert(data)
+#     print("Inserted {} embeddings".format(len(embeddings)))
+#     return res
 
 def main(args):
   
@@ -116,6 +191,7 @@ def main(args):
 
                  
             paths, labels = facenet.get_image_paths_and_labels(dataset)
+            # for all the images in the dataset, if same folder then same label
             
             print('Number of classes: %d' % len(dataset))
             print('Number of images: %d' % len(paths))
@@ -184,16 +260,38 @@ def main(args):
             #     # accuracy = np.mean(np.equal(best_class_indices, labels))
             #     # print('Accuracy: %.3f' % accuracy)
 
-            if args.mode == 'TRAIN':
-                # dropprevious collection
-                drop_collection(collection_name)
-                # Create a collection in Milvus
-                collection = create_collection(collection_name, embedding_size)
+            # if args.mode == 'TRAIN':
+            #     # dropprevious collection
+            #     drop_collection(collection_name)
+            #     # Create a collection in Milvus
+            #     collection = create_collection(collection_name, embedding_size)
                 
-                # Insert embeddings into Milvus
-                print('Inserting embeddings into Milvus')
-                # print(labels[1], "--------------------")
-                insert_embeddings(collection, emb_array, labels)
+            #     # Insert embeddings into Milvus
+            #     print('Inserting embeddings into Milvus')
+            #     # print(labels[1], "--------------------")
+            #     insert_embeddings(collection, emb_array, labels)
+
+            if args.mode == 'TRAIN':
+                drop_collection(collection_name)
+                collection = create_collection(collection_name, embedding_size)
+                # print("Collection: ", collection)
+                
+                # Organize embeddings by person label
+                embeddings_by_person = {}
+
+                # print size of labels and emb_array for verification
+                print('Size of labels:', len(labels))
+                print('Size of emb_array:', len(emb_array))
+                for i, label in enumerate(labels):
+                    if label not in embeddings_by_person:
+                        embeddings_by_person[label] = []
+                    embeddings_by_person[label].append(emb_array[i])
+
+                print('Number of people:', len(embeddings_by_person))
+                print('Inserting clustered centroids into Milvus')
+
+                # Insert clustered centroids into Milvus
+                insert_cluster_centroids(collection, embeddings_by_person, labels)
 
             elif args.mode == 'CLASSIFY':
                 # Load collection
@@ -204,16 +302,21 @@ def main(args):
 
                 # Search for nearest neighbors in Milvus
                 print('Classifying images')
+                best_class_indices = []
                 for i in range(nrof_images):
                     query_embedding = emb_array[i]
                     # load collection
-                    results = search_embeddings(collection, query_embedding, top_k=2)
+                    results = search_embeddings(collection, query_embedding, top_k=MATCHES_TO_SHOW)
                     for result in results:
-                        print(f"Image: {paths[i].split('/')[-1][:5]}  {class_names[result[0].label]}  {result[0].distance} {class_names[result[1].label]} {result[1].distance}")
-                        # print(f"---------------------- also close to class {class_names[result[1].label]} with distance {result[1].distance}")
-                # # calculating accuracy of best 1 class
-                # accuracy = np.mean(np.equal(best_class_indices[:, -1], labels))
-                # print('Accuracy: %.3f' % accuracy)
+                        best_class_indices.append(result[0].entity.get("label"))
+                        print(f"Image: {paths[i].split('/')[-1][:10]}")
+                        for i in range(MATCHES_TO_SHOW):
+                            print(f"--------{class_names[result[i].label]}-{result[i].distance}")
+                        
+                              # print(f"---------------------- also close to class {class_names[result[1].label]} with distance {result[1].distance}")
+                # calculating accuracy of best 1 class
+                accuracy = np.mean(np.equal(best_class_indices, labels))
+                print('Accuracy: %.3f' % accuracy)
                 
             
 def split_dataset(dataset, min_nrof_images_per_class, nrof_train_images_per_class):
