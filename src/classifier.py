@@ -45,7 +45,7 @@ from pymilvus import (
     FieldSchema, CollectionSchema, DataType, Collection
 )
 
-MATCHES_TO_SHOW = 10 # during classification, show the top 3 matches
+MATCHES_TO_SHOW = 2 # during classification, show the top 3 matches
 MAX_CLUSTERS = 5 # maximum number of clusters to consider for each person
 MIN_EXAMPLES_TO_CLUSTER = 4 # minimum number of examples to consider for clustering
 
@@ -223,57 +223,6 @@ def main(args):
                 feed_dict = { images_placeholder:images, phase_train_placeholder:False }
                 emb_array[start_index:end_index,:] = sess.run(embeddings, feed_dict=feed_dict)
             
-            # classifier_filename_exp = os.path.expanduser(args.classifier_filename)
-# Now as model is almost done, next thing will be create a new python model for recognisation In which we will give some image path, so fi So my model and architecture is ready for recognisation,
-# Now I want to make a Portal for the model, In which
-# Backend possible flask: 
-# will be running tensorflow and docker of milvus
-# - will recieve the image from frontend using some API and 
-            # if (args.mode=='TRAIN'):
-            #     # Train classifier
-            #     print('Training classifier')
-            #     model = SVC(kernel='linear', probability=True)
-            #     model.fit(emb_array, labels)
-            
-            #     # Create a list of class names
-            #     class_names = [ cls.name.replace('_', ' ') for cls in dataset]
-
-            #     # Saving classifier model
-            #     with open(classifier_filename_exp, 'wb') as outfile:
-            #         pickle.dump((model, class_names), outfile)
-            #     print('Saved classifier model to file "%s"' % classifier_filename_exp)
-                
-            # elif (args.mode=='CLASSIFY'):
-            #     # Classify images
-            #     print('Testing classifier')
-            #     with open(classifier_filename_exp, 'rb') as infile:
-            #         (model, class_names) = pickle.load(infile)
-            #     print('Loaded classifier model from file "%s"' % classifier_filename_exp)
-            #     predictions = model.predict_proba(emb_array)
-            #     # best_class_indices = np.argmax(predictions, axis=1)
-            #     # best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
-            #     # for i in range(len(best_class_indices)):
-            #     #     print('%4d  %s: %.3f' % (i, class_names[best_class_indices[i]], best_class_probabilities[i]))
-            #     # printing best 2 classes
-            #     best_class_indices = np.argsort(predictions, axis=1)[:, -2:]
-            #     best1_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices[:, -1]]
-            #     best2_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices[:, -2]]
-            #     for i in range(len(best_class_indices)):
-            #         # also print the item name
-            #         print('%4d %s %s: %.3f, %s: %.3f' % (i, paths[i].split('/')[-1], class_names[best_class_indices[i, -1]], best1_class_probabilities[i], class_names[best_class_indices[i, -2]], best2_class_probabilities[i]))
-            #     # accuracy = np.mean(np.equal(best_class_indices, labels))
-            #     # print('Accuracy: %.3f' % accuracy)
-
-            # if args.mode == 'TRAIN':
-            #     # dropprevious collection
-            #     drop_collection(collection_name)
-            #     # Create a collection in Milvus
-            #     collection = create_collection(collection_name, embedding_size)
-                
-            #     # Insert embeddings into Milvus
-            #     print('Inserting embeddings into Milvus')
-            #     # print(labels[1], "--------------------")
-            #     insert_embeddings(collection, emb_array, labels)
 
             if args.mode == 'TRAIN':
                 drop_collection(collection_name)
@@ -313,7 +262,7 @@ def main(args):
                     results = search_embeddings(collection, query_embedding, top_k=MATCHES_TO_SHOW)
                     for result in results:
                         best_class_indices.append(result[0].entity.get("label"))
-                        print(f"Image: {paths[i].split('/')[-1][:10]}")
+                        print(f"Image: {paths[i].split('/')[-1][:10]}", best_class_indices[len(best_class_indices) - 1], labels[len(best_class_indices) - 1])
                         for i in range(MATCHES_TO_SHOW):
                             print(f"--------{class_names[result[i].label]}-{result[i].distance}")
                         

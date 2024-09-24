@@ -39,12 +39,12 @@ from time import sleep
 
 # Hyperparameters and constants
 MINSIZE = 20  # minimum size of face
-THRESHOLD = [0.7, 0.75, 0.75]  # three steps' threshold
+THRESHOLD = [0.7, 0.7, 0.75]  # three steps' threshold
 FACTOR = 0.709  # scale factor
 DEFAULT_IMAGE_SIZE = 182
 DEFAULT_MARGIN = 44
 DEFAULT_GPU_MEMORY_FRACTION = 1.0
-DEFAULT_DETECT_MULTIPLE_FACES = False
+DEFAULT_DETECT_MULTIPLE_FACES = True
 
 def parse_arguments(argv):
     """
@@ -142,6 +142,7 @@ def align_and_save_face(image_path, output_filename, pnet, rnet, onet, image_siz
         else:
             det_arr.append(np.squeeze(det))
 
+        count = 0
         for i, det in enumerate(det_arr):
             det = np.squeeze(det)
             bb = np.zeros(4, dtype=np.int32)
@@ -150,11 +151,16 @@ def align_and_save_face(image_path, output_filename, pnet, rnet, onet, image_siz
             bb[2] = np.minimum(det[2] + margin / 2, img_size[1])
             bb[3] = np.minimum(det[3] + margin / 2, img_size[0])
             cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
+            print(np.min(cropped),np.max(cropped))
             scaled = transform.resize_local_mean(cropped, (image_size, image_size))
+            scaled = (scaled)/ (scaled.max())
+            print(np.min(scaled),np.max(scaled))
             try:
-                io.imsave(output_filename, scaled)
+                io.imsave(output_filename + f'_{i}.png', scaled)
+                count += 1
             except (IOError, ValueError, IndexError) as e:
-                print(f'Error saving {output_filename}: {e}')
+                print(f'Error saving {output_filename}_{i}: {e}')
+        return count
 
 def process_dataset(dataset, output_dir, pnet, rnet, onet, image_size, margin, detect_multiple_faces, random_order):
     """
@@ -164,9 +170,11 @@ def process_dataset(dataset, output_dir, pnet, rnet, onet, image_size, margin, d
     dataset (list): List of dataset objects with image paths.
     output_dir (str): Directory to save the aligned images.
     pnet, rnet, onet: MTCNN networks for face detection.
+
     image_size (int): The size of the output aligned images.
     margin (int): Margin around the detected face bounding box.
     detect_multiple_faces (bool): Whether to detect and align multiple faces in the images.
+    
     random_order (bool): Whether to shuffle the images before processing.
 
     Returns:
@@ -188,12 +196,12 @@ def process_dataset(dataset, output_dir, pnet, rnet, onet, image_size, margin, d
         for image_path in cls.image_paths:
             nrof_images_total += 1
             filename = os.path.splitext(os.path.split(image_path)[1])[0]
-            output_filename = os.path.join(output_class_dir, filename + '.png')
+            output_filename = os.path.join(output_class_dir, filename)
 
-            if not os.path.exists(output_filename):
+            if not os.path.exists(output_filename + '_0.png'):
                 success = align_and_save_face(image_path, output_filename, pnet, rnet, onet, image_size, margin, detect_multiple_faces)
                 if success:
-                    nrof_successfully_aligned += 1
+                    nrof_successfully_aligned += success
 
     return nrof_successfully_aligned, nrof_images_total
 
@@ -221,7 +229,5 @@ def main(args):
 
 if __name__ == '__main__':
     main(parse_arguments(sys.argv[1:]))
-
-
     # something to end
     
